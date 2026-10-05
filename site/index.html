@@ -247,7 +247,7 @@ th:first-child, td:first-child { text-align: left; }
       }
       return `<div class="cp"><span class="when">${esc(cp.label)} · ${fmtLong(t)}</span><span class="status num">${status}</span>` +
         (cp.note ? `<span class="detail tagline">${esc(cp.note)}</span>` : "") +
-        (cp.stake ? `<span class="detail">${esc(cp.stake)}</span>` : "") +
+        [].concat(cp.stake || []).map((line) => `<span class="detail">${esc(line)}</span>`).join("") +
         (detail ? `<span class="detail num">${detail}</span>` : "") + `</div>`;
     }).join("");
 
