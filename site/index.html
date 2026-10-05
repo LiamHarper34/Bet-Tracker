@@ -170,7 +170,7 @@ th:first-child, td:first-child { text-align: left; }
 
   <footer>
     <div id="updated">—</div>
-    <div>SLS quotes are delayed about 20 min and refresh every ~15 min. SOL updates live from CoinGecko where it's available.</div>
+    <div>SLS quotes refresh when GitHub runs the update, which can be hours apart. SOL updates live from CoinGecko where it's available.</div>
   </footer>
 </main>
 
@@ -276,7 +276,7 @@ th:first-child, td:first-child { text-align: left; }
     // Warnings
     const warns = [];
     for (const k of KEYS) if (data[k]?.stale) warns.push(`${A[k].label}: the latest fetch failed, so this shows the last good price.`);
-    if (now - data.generatedAt > 3 * 3600 * 1000 && !finalSettled) warns.push("The server data is more than 3 hours old. The scheduled update may have stopped.");
+    if (now - data.generatedAt > 24 * 3600 * 1000 && !finalSettled) warns.push("The server data is more than a day old. The scheduled update may have stopped.");
     $("warn").style.display = warns.length ? "block" : "none";
     $("warn").textContent = warns.join(" ");
 
