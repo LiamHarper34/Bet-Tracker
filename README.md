@@ -4,7 +4,7 @@ This is a live page for the bet that **SLS (ASX: Solstice Minerals)** outperform
 
 | | Start price (agreed) |
 |---|---|
-| SLS | A$2.70 |
+| SLS | A$2.37 |
 | SOL | A$141.94 |
 
 ## How it works
