@@ -71,7 +71,11 @@ header p { margin: 0; color: var(--text-2); }
 .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: var(--lead-bg); color: var(--text); margin-left: auto; }
 h2 { font-size: 15px; margin: 0 0 4px; }
 .caption { color: var(--muted); font-size: 12px; margin: 0 0 8px; }
-.legend { display: flex; gap: 16px; font-size: 13px; color: var(--text-2); margin-bottom: 4px; }
+.legend { display: flex; gap: 16px; font-size: 13px; color: var(--text-2); }
+.chart-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 6px; }
+.seg { display: inline-flex; background: var(--grid); border-radius: 99px; padding: 2px; }
+.seg button { font: inherit; font-size: 12px; border: 0; background: none; color: var(--text-2); padding: 4px 10px; border-radius: 99px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .chart-wrap { position: relative; }
 svg { display: block; width: 100%; height: auto; overflow: visible; }
@@ -137,9 +141,12 @@ th:first-child, td:first-child { text-align: left; }
   <section class="card">
     <h2>Return since the bet was made</h2>
     <p class="caption">% change from the agreed start prices. SLS plots ASX trading-day closes; SOL plots daily prices. Last point is the latest price.</p>
-    <div class="legend">
-      <span><i class="swatch" style="background:var(--sls)"></i>SLS 🚀</span>
-      <span><i class="swatch" style="background:var(--sol)"></i>SOL 💩</span>
+    <div class="chart-head">
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--sls)"></i>SLS 🚀</span>
+        <span><i class="swatch" style="background:var(--sol)"></i>SOL 💩</span>
+      </div>
+      <div class="seg" id="range" role="group" aria-label="Chart range"></div>
     </div>
     <div class="chart-wrap" id="chart-wrap">
       <svg id="chart" role="img" aria-label="Line chart of SLS and SOL percentage returns from 12 Sep 2026 to 12 Sep 2027"></svg>
@@ -186,6 +193,7 @@ th:first-child, td:first-child { text-align: left; }
 
   let data = null;
   let liveSol = null; // { price, priceTime } from the browser, if CoinGecko allows it
+  let rangeId = null; // which checkpoint the chart's x-axis runs to; defaults to the next one
 
   const finalCp = () => data.bet.checkpoints[data.bet.checkpoints.length - 1];
   const settledFor = (cp) => data.settlements?.[cp.id] ?? null;
@@ -285,22 +293,31 @@ th:first-child, td:first-child { text-align: left; }
 
     $("updated").textContent = "Server data updated " + fmtTime(data.generatedAt) + " (Sydney time)";
 
-    drawChart(start, end, q);
+    // Chart range: zoom to the next unsettled checkpoint by default
+    const cps = bet.checkpoints;
+    if (!rangeId) rangeId = (cps.find((cp) => !settledFor(cp)) || fin).id;
+    $("range").innerHTML = cps.map((cp, i) =>
+      `<button type="button" data-id="${cp.id}" aria-pressed="${cp.id === rangeId}">${i === cps.length - 1 ? "Full bet" : "To " + fmtDate(Date.parse(cp.settlementUtc))}</button>`).join("");
+    const viewCp = cps.find((cp) => cp.id === rangeId) || fin;
+    drawChart(start, Date.parse(viewCp.settlementUtc), q);
   }
 
   function series(k, start, end, q) {
     const sp = data.bet.assets[k].startPrice;
     const pts = [{ t: start, r: 0 }];
     for (const h of data[k]?.history || []) if (h.t > start && h.t <= end + DAY) pts.push({ t: h.t, r: h.p / sp - 1 });
-    if (q[k]?.price && q[k].priceTime > pts[pts.length - 1].t) pts.push({ t: q[k].priceTime, r: q[k].price / sp - 1 });
+    if (q[k]?.price && q[k].priceTime > pts[pts.length - 1].t && q[k].priceTime <= end + DAY) pts.push({ t: q[k].priceTime, r: q[k].price / sp - 1 });
     return pts;
   }
 
   function drawChart(start, end, q) {
     const svg = $("chart");
     const W = Math.max(300, $("chart-wrap").clientWidth), H = W < 480 ? 240 : 300;
-    const narrow = W < 560; // stack the top labels on phones so they don't overlap
-    const m = { t: narrow ? 36 : 16, r: 66, b: 26, l: 44 };
+    const cpTimes = data.bet.checkpoints.map((cp) => ({ cp, t: Date.parse(cp.settlementUtc) }));
+    const inside = cpTimes.filter((c) => c.t < end), atEnd = cpTimes.find((c) => c.t === end);
+    const stack = W < 560 && inside.some((c) => c.cp.note) && atEnd?.cp.note; // stack top labels on phones so they don't overlap
+    const m = { t: stack ? 36 : 16, r: 66, b: 26, l: 44 };
+    svg.setAttribute("aria-label", `Line chart of SLS and SOL percentage returns from ${fmtLong(start)} to ${fmtLong(end)}`);
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     const S = { sls: series("sls", start, end, q), sol: series("sol", start, end, q) };
     const all = [...S.sls, ...S.sol].map((p) => p.r);
@@ -319,9 +336,10 @@ th:first-child, td:first-child { text-align: left; }
       g += `<text x="${m.l - 6}" y="${yy}" text-anchor="end" dominant-baseline="middle">${(v * 100).toFixed(Math.abs(step) < 0.01 ? 1 : 0)}%</text>`;
     }
     g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}" stroke="var(--muted)" stroke-width="1"/>`;
-    // x ticks: start, quarterly months, end
+    // x ticks: start, month starts (quarterly for long ranges), end
+    const every = end - start > 200 * DAY ? 3 : 1;
     const ticks = [start];
-    for (let d = new Date(start); d < end; ) { d = new Date(d.getFullYear(), d.getMonth() + 1, 1); if (d < end && d.getMonth() % 3 === 0) ticks.push(+d); }
+    for (let d = new Date(start); d < end; ) { d = new Date(d.getFullYear(), d.getMonth() + 1, 1); if (d < end && d.getMonth() % every === 0) ticks.push(+d); }
     ticks.push(end);
     while (ticks.length > 2 && x(end) - x(ticks[ticks.length - 2]) < 72) ticks.splice(ticks.length - 2, 1);
     while (ticks.length > 2 && x(ticks[1]) - x(start) < 72) ticks.splice(1, 1);
@@ -331,14 +349,13 @@ th:first-child, td:first-child { text-align: left; }
       const opts = i === 0 || i === ticks.length - 1 ? { day: "numeric", month: "short", year: "2-digit" } : { month: "short" };
       g += `<text x="${x(t).toFixed(1)}" y="${H - 6}" text-anchor="${anchor}">${fmtDate(t, opts)}</text>`;
     });
-    // Checkpoint markers (not the final, which is the right edge)
-    for (const cp of data.bet.checkpoints.slice(0, -1)) {
-      const cx = x(Date.parse(cp.settlementUtc)).toFixed(1);
+    // Checkpoint markers inside the range; the one at the range end labels the right edge
+    for (const { cp, t } of inside) {
+      const cx = x(t).toFixed(1);
       g += `<line x1="${cx}" x2="${cx}" y1="${m.t}" y2="${H - m.b}" stroke="var(--muted)" stroke-dasharray="2 3"/>`;
-      g += `<text x="${(+cx + 4).toFixed(1)}" y="${m.t - 4}" text-anchor="start">${esc(fmtDate(Date.parse(cp.settlementUtc)) + (cp.note ? " · " + cp.note : ""))}</text>`;
+      g += `<text x="${(+cx + 4).toFixed(1)}" y="${m.t - 4}" text-anchor="start">${esc(fmtDate(t) + (cp.note ? " · " + cp.note : ""))}</text>`;
     }
-    const fin = data.bet.checkpoints[data.bet.checkpoints.length - 1];
-    if (fin.note) g += `<text x="${x(end).toFixed(1)}" y="${m.t - (narrow ? 22 : 4)}" text-anchor="end">${esc(fin.note)}</text>`;
+    if (atEnd?.cp.note) g += `<text x="${x(end).toFixed(1)}" y="${m.t - (stack ? 22 : 4)}" text-anchor="end">${esc(atEnd.cp.note)}</text>`;
     // Today marker
     const nowX = x(Math.min(Date.now(), end)).toFixed(1);
     g += `<line x1="${nowX}" x2="${nowX}" y1="${m.t}" y2="${H - m.b}" stroke="var(--border)" stroke-dasharray="3 3"/>`;
@@ -419,6 +436,11 @@ th:first-child, td:first-child { text-align: left; }
       if (Number.isFinite(j?.[id]?.aud)) { liveSol = { price: j[id].aud, priceTime: j[id].last_updated_at * 1000 }; render(); }
     } catch (e) { /* server data is the fallback */ }
   }
+
+  $("range").addEventListener("click", (e) => {
+    const id = e.target.closest("button")?.dataset.id;
+    if (id && id !== rangeId) { rangeId = id; render(); }
+  });
 
   loadData().then(loadLiveSol);
   setInterval(loadData, 5 * 60 * 1000);
