@@ -1,6 +1,11 @@
 # SLS vs SOL bet tracker
 
-This is a live page for the bet that **SLS (ASX: Solstice Minerals)** outperforms **Solana (SOL/AUD)** between 12 Sep 2026 and 19 Nov 2026. Each side is scored by its % return from the agreed start prices:
+This is a live page for the bet that **SLS (ASX: Solstice Minerals)** 🚀 outperforms **Solana (SOL/AUD)** 💩, made on 12 Sep 2026. There are two checkpoints:
+
+- **19 Nov 2026**: checkpoint
+- **12 Sep 2027**: final. The loser owes the winner a case of beers.
+
+At each checkpoint, a side's score is its % return from the agreed start prices. SOL is priced at 4:00pm Sydney time. SLS uses its last ASX close on or before the checkpoint date:
 
 | | Start price (agreed) |
 |---|---|
@@ -12,9 +17,10 @@ This is a live page for the bet that **SLS (ASX: Solstice Minerals)** outperform
 - `.github/workflows/update.yml` runs every 15 minutes (and on each push). It runs `scripts/fetch-prices.mjs`, which writes `site/data.json`, then deploys `site/` to GitHub Pages.
 - Price sources: Yahoo Finance (`SLS.AX`, `SOL-AUD`) first. If Yahoo fails, it falls back to the ASX quote API for SLS and CoinGecko for SOL. If every source fails, the page keeps the last good price and marks it stale.
 - In the browser, the page also polls CoinGecko every 60 s for a live SOL price.
-- After 19 Nov 2026 the settlement prices are locked in, and from then on the page shows the winner.
+- After each checkpoint passes, its prices are locked in and the page shows who won it.
+- `keepalive.yml` makes a small commit once a month. Without it, GitHub turns off scheduled workflows in a public repo after 60 days with no activity.
 
-The bet terms (start prices, dates, settlement rule) all live in `bet.json`.
+The bet terms (start prices, checkpoints, stakes, emojis) all live in `bet.json`.
 
 ## One-time setup
 

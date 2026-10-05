@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>SLS vs SOL Bet</title>
-<meta name="description" content="Live tracker: does SLS (ASX) beat Solana by 19 Nov 2026? Returns measured from the agreed start prices.">
+<meta name="description" content="Live tracker: does SLS (ASX) beat Solana? Checkpoint 19 Nov 2026, final 12 Sep 2027 for a case of beers.">
 <meta property="og:title" content="SLS vs SOL — live bet tracker">
-<meta property="og:description" content="Does SLS outperform Solana by 19 Nov 2026? Live % returns from the agreed start prices.">
+<meta property="og:description" content="SLS 🚀 vs SOL 💩. Checkpoint 19 Nov 2026, final 12 Sep 2027. Loser owes a case of beers.">
 <meta property="og:type" content="website">
 <style>
 :root {
@@ -86,6 +86,12 @@ svg { display: block; width: 100%; height: auto; overflow: visible; }
 .progress { height: 6px; border-radius: 99px; background: var(--grid); overflow: hidden; margin: 10px 0 4px; }
 .progress > div { height: 100%; background: var(--text-2); }
 .row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--text-2); }
+.cp { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 10px 0; border-top: 1px solid var(--grid); }
+.cp:first-child { border-top: 0; padding-top: 4px; }
+.cp .when { font-weight: 600; }
+.cp .status { text-align: right; font-size: 13px; color: var(--text-2); }
+.cp .detail { grid-column: 1 / -1; font-size: 13px; color: var(--text-2); }
+.cp .result { font-weight: 600; color: var(--text); }
 .rules p, .rules li { color: var(--text-2); font-size: 13px; }
 .rules ul { padding-left: 18px; margin: 6px 0; }
 footer { color: var(--muted); font-size: 12px; margin-top: 20px; text-align: center; }
@@ -104,7 +110,7 @@ th:first-child, td:first-child { text-align: left; }
 <main>
   <header>
     <h1>SLS vs SOL</h1>
-    <p>Bet: <strong>SLS</strong> (ASX) outperforms <strong>Solana</strong> by 19 Nov 2026.</p>
+    <p>Bet: <strong>SLS</strong> (ASX) outperforms <strong>Solana</strong>. Checkpoint 19 Nov 2026; final 12 Sep 2027, loser owes a case of beers.</p>
   </header>
 
   <section class="card hero" aria-live="polite">
@@ -113,6 +119,11 @@ th:first-child, td:first-child { text-align: left; }
     <p class="sub" id="hero-sub"></p>
     <div class="progress" aria-hidden="true"><div id="progress"></div></div>
     <div class="row num"><span id="made"></span><span id="countdown"></span></div>
+  </section>
+
+  <section class="card">
+    <h2>Checkpoints</h2>
+    <div id="checkpoints"></div>
   </section>
 
   <div class="grid2">
@@ -126,11 +137,11 @@ th:first-child, td:first-child { text-align: left; }
     <h2>Return since the bet was made</h2>
     <p class="caption">% change from the agreed start prices. SLS plots ASX trading-day closes; SOL plots daily prices. Last point is the latest price.</p>
     <div class="legend">
-      <span><i class="swatch" style="background:var(--sls)"></i>SLS</span>
-      <span><i class="swatch" style="background:var(--sol)"></i>SOL</span>
+      <span><i class="swatch" style="background:var(--sls)"></i>SLS 🚀</span>
+      <span><i class="swatch" style="background:var(--sol)"></i>SOL 💩</span>
     </div>
     <div class="chart-wrap" id="chart-wrap">
-      <svg id="chart" role="img" aria-label="Line chart of SLS and SOL percentage returns since 12 Sep 2026"></svg>
+      <svg id="chart" role="img" aria-label="Line chart of SLS and SOL percentage returns from 12 Sep 2026 to 12 Sep 2027"></svg>
       <div class="tip" id="tip"></div>
     </div>
     <details>
@@ -160,100 +171,125 @@ th:first-child, td:first-child { text-align: left; }
   const $ = (id) => document.getElementById(id);
   const DAY = 86400000;
   const tz = "Australia/Sydney";
+  const KEYS = ["sls", "sol"];
   const fmtAud = (v, d) => v == null ? "—" : "A$" + v.toLocaleString("en-AU", { minimumFractionDigits: d, maximumFractionDigits: d });
   const fmtPct = (v) => v == null ? "—" : (v >= 0 ? "+" : "−") + Math.abs(v * 100).toFixed(2) + "%";
   const fmtPts = (v) => Math.abs(v * 100).toFixed(2) + " pts";
   const fmtDate = (ms, opts = { day: "numeric", month: "short" }) => new Date(ms).toLocaleDateString("en-AU", { timeZone: tz, ...opts });
-  const fmtTime = (ms) => new Date(ms).toLocaleString("en-AU", { timeZone: tz, day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) + " AEST/AEDT";
+  const fmtLong = (ms) => fmtDate(ms, { day: "numeric", month: "short", year: "numeric" });
+  const fmtTime = (ms) => new Date(ms).toLocaleString("en-AU", { timeZone: tz, day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  const daysUntil = (ms) => Math.ceil((ms - Date.now()) / DAY);
+  const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
   const decimals = { sls: 3, sol: 2 };
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
   let data = null;
   let liveSol = null; // { price, priceTime } from the browser, if CoinGecko allows it
 
+  const finalCp = () => data.bet.checkpoints[data.bet.checkpoints.length - 1];
+  const settledFor = (cp) => data.settlements?.[cp.id] ?? null;
+  const returns = (q) => Object.fromEntries(KEYS.map((k) => [k, q[k]?.price ? q[k].price / data.bet.assets[k].startPrice - 1 : null]));
+  const winner = (r) => r.sls - r.sol >= 0 ? "sls" : "sol";
+
   function current(k) {
-    if (data.settlement) return data.settlement[k];
+    const fin = settledFor(finalCp());
+    if (fin) return fin[k];
     if (k === "sol" && liveSol && liveSol.priceTime > (data.sol.priceTime || 0)) return { ...liveSol, source: "CoinGecko (live)" };
     return data[k];
   }
 
   function render() {
-    const bet = data.bet;
+    const bet = data.bet, A = bet.assets;
     const start = Date.parse(bet.madeOn + "T00:00:00+10:00");
-    const end = Date.parse(bet.settlementUtc);
+    const fin = finalCp();
+    const end = Date.parse(fin.settlementUtc);
     const now = Date.now();
     const q = { sls: current("sls"), sol: current("sol") };
-    const ret = {};
-    for (const k of ["sls", "sol"]) ret[k] = q[k]?.price ? q[k].price / bet.assets[k].startPrice - 1 : null;
+    const ret = returns(q);
+    const finalSettled = !!settledFor(fin);
+    const leaderKey = ret.sls != null && ret.sol != null ? winner(ret) : null;
 
     // Hero
-    const settled = !!data.settlement;
-    if (ret.sls != null && ret.sol != null) {
-      const gap = ret.sls - ret.sol;
-      const leader = gap >= 0 ? "SLS" : "SOL";
-      $("hero-who").textContent = settled ? "Final result" : "Currently winning";
-      $("hero-big").textContent = settled ? `${leader} wins` : `${leader} by ${fmtPts(gap)}`;
-      $("hero-big").innerHTML = `<i class="swatch" style="background:var(--${leader.toLowerCase()});width:.4em;height:.4em;display:inline-block;vertical-align:middle;margin-right:.25em"></i>` + $("hero-big").textContent;
-      const tieSls = bet.assets.sls.startPrice * (1 + ret.sol);
-      $("hero-sub").textContent = settled
-        ? `SLS ${fmtPct(ret.sls)} vs SOL ${fmtPct(ret.sol)}, a margin of ${fmtPts(gap)}.`
+    if (leaderKey) {
+      const leader = A[leaderKey], gap = ret.sls - ret.sol;
+      const sw = `<i class="swatch" style="background:var(--${leaderKey});width:.4em;height:.4em;display:inline-block;vertical-align:middle;margin-right:.25em"></i>`;
+      $("hero-who").textContent = finalSettled ? "Final result" : "Currently winning";
+      $("hero-big").innerHTML = sw + esc(finalSettled ? `${leader.label} ${leader.emoji} wins` : `${leader.label} ${leader.emoji} by ${fmtPts(gap)}`);
+      const tieSls = A.sls.startPrice * (1 + ret.sol);
+      $("hero-sub").textContent = finalSettled
+        ? `SLS ${fmtPct(ret.sls)} vs SOL ${fmtPct(ret.sol)}. Team ${leaderKey === "sls" ? "SOL" : "SLS"} owes the case of beers 🍺`
         : gap >= 0
           ? `SLS stays ahead while it trades above ${fmtAud(tieSls, 3)} (at today's SOL price).`
           : `SLS needs ${fmtAud(tieSls, 3)} to draw level (at today's SOL price).`;
-      for (const k of ["sls", "sol"]) $("card-" + k).classList.toggle("leading", leader.toLowerCase() === k);
     } else {
       $("hero-who").textContent = "Price data unavailable";
       $("hero-big").textContent = "—";
     }
-    const frac = Math.min(1, Math.max(0, (now - start) / (end - start)));
-    $("progress").style.width = (frac * 100).toFixed(1) + "%";
-    $("made").textContent = "Made " + fmtDate(start, { day: "numeric", month: "short", year: "numeric" });
-    const daysLeft = Math.ceil((end - now) / DAY);
-    $("countdown").textContent = settled || daysLeft <= 0 ? "Settled 19 Nov 2026" : `${daysLeft} day${daysLeft === 1 ? "" : "s"} to go`;
+    for (const k of KEYS) $("card-" + k).classList.toggle("leading", leaderKey === k);
+    $("progress").style.width = (Math.min(1, Math.max(0, (now - start) / (end - start))) * 100).toFixed(1) + "%";
+    $("made").textContent = "Made " + fmtLong(start);
+    const left = daysUntil(end);
+    $("countdown").textContent = finalSettled || left <= 0 ? "Bet finished" : `${plural(left, "day")} to the final`;
+
+    // Checkpoints
+    $("checkpoints").innerHTML = bet.checkpoints.map((cp) => {
+      const st = settledFor(cp), t = Date.parse(cp.settlementUtc), d = daysUntil(t);
+      let status, detail = "";
+      if (st) {
+        const r = returns(st), w = A[winner(r)];
+        status = `<span class="result">${esc(w.label + " " + w.emoji)} won</span>`;
+        detail = `SLS ${fmtPct(r.sls)} (${fmtAud(st.sls.price, 3)}) vs SOL ${fmtPct(r.sol)} (${fmtAud(st.sol.price, 2)}), margin ${fmtPts(r.sls - r.sol)}.`;
+      } else if (d > 0) {
+        status = `in ${plural(d, "day")}`;
+      } else {
+        status = "settling…";
+      }
+      return `<div class="cp"><span class="when">${esc(cp.label)} · ${fmtLong(t)}</span><span class="status num">${status}</span>` +
+        (cp.stake ? `<span class="detail">${esc(cp.stake)}</span>` : "") +
+        (detail ? `<span class="detail num">${detail}</span>` : "") + `</div>`;
+    }).join("");
 
     // Cards
-    for (const k of ["sls", "sol"]) {
-      const a = bet.assets[k];
-      const qq = q[k] || {};
-      const el = $("card-" + k);
-      const leading = el.classList.contains("leading");
+    for (const k of KEYS) {
+      const a = A[k], qq = q[k] || {}, el = $("card-" + k);
       el.innerHTML = `
-        <div class="tag"><i class="swatch" style="background:var(--${k})"></i>${a.label}${leading ? `<span class="badge">${settled ? "Winner" : "Leading"}</span>` : ""}</div>
-        <p class="name">${a.name}</p>
+        <div class="tag"><i class="swatch" style="background:var(--${k})"></i>${esc(a.label)}${leaderKey === k ? `<span class="badge">${finalSettled ? "Winner" : "Leading"}</span>` : ""}</div>
+        <p class="name">${esc(a.name)}</p>
         <div class="ret num">${fmtPct(ret[k])}</div>
         <dl class="num">
           <dt>Start</dt><dd>${fmtAud(a.startPrice, decimals[k])}</dd>
-          <dt>${settled ? "Final" : "Now"}</dt><dd>${fmtAud(qq.price, decimals[k])}</dd>
-          <dt>As of</dt><dd>${qq.priceTime ? fmtTime(qq.priceTime).replace(" AEST/AEDT", "") : "—"}</dd>
+          <dt>${finalSettled ? "Final" : "Now"}</dt><dd>${fmtAud(qq.price, decimals[k])}</dd>
+          <dt>As of</dt><dd>${qq.priceTime ? fmtTime(qq.priceTime) : "—"}</dd>
         </dl>`;
     }
 
     // Warnings
     const warns = [];
-    for (const k of ["sls", "sol"]) if (data[k]?.stale) warns.push(`${bet.assets[k].label}: the latest fetch failed, so this shows the last good price.`);
-    if (now - data.generatedAt > 3 * 3600 * 1000 && !settled) warns.push("The server data is more than 3 hours old. The scheduled update may have stopped.");
+    for (const k of KEYS) if (data[k]?.stale) warns.push(`${A[k].label}: the latest fetch failed, so this shows the last good price.`);
+    if (now - data.generatedAt > 3 * 3600 * 1000 && !finalSettled) warns.push("The server data is more than 3 hours old. The scheduled update may have stopped.");
     $("warn").style.display = warns.length ? "block" : "none";
     $("warn").textContent = warns.join(" ");
 
     // Rules
     $("rule-text").textContent = bet.settlementNote;
-    $("rule-start").textContent = `SLS ${fmtAud(bet.assets.sls.startPrice, 3)}, SOL ${fmtAud(bet.assets.sol.startPrice, 2)}`;
+    $("rule-start").textContent = `SLS ${fmtAud(A.sls.startPrice, 3)}, SOL ${fmtAud(A.sol.startPrice, 2)}`;
     const ref = (k) => {
       const h = (data[k]?.history || []).filter((p) => p.t <= start + DAY);
       const p = h[h.length - 1];
-      return p ? `${bet.assets[k].label} ${fmtAud(p.p, decimals[k])} (${fmtDate(p.t)})` : null;
+      return p ? `${A[k].label} ${fmtAud(p.p, decimals[k])} (${fmtDate(p.t)})` : null;
     };
-    const refs = [ref("sls"), ref("sol")].filter(Boolean);
+    const refs = KEYS.map(ref).filter(Boolean);
     if (refs.length) $("rule-check").textContent = refs.join(", ");
 
-    $("updated").textContent = "Server data updated " + fmtTime(data.generatedAt);
+    $("updated").textContent = "Server data updated " + fmtTime(data.generatedAt) + " (Sydney time)";
 
     drawChart(start, end, q);
   }
 
-  function series(k, start, q) {
+  function series(k, start, end, q) {
     const sp = data.bet.assets[k].startPrice;
     const pts = [{ t: start, r: 0 }];
-    for (const h of data[k]?.history || []) if (h.t > start && h.t <= Date.parse(data.bet.settlementUtc) + DAY) pts.push({ t: h.t, r: h.p / sp - 1 });
+    for (const h of data[k]?.history || []) if (h.t > start && h.t <= end + DAY) pts.push({ t: h.t, r: h.p / sp - 1 });
     if (q[k]?.price && q[k].priceTime > pts[pts.length - 1].t) pts.push({ t: q[k].priceTime, r: q[k].price / sp - 1 });
     return pts;
   }
@@ -261,9 +297,9 @@ th:first-child, td:first-child { text-align: left; }
   function drawChart(start, end, q) {
     const svg = $("chart");
     const W = Math.max(300, $("chart-wrap").clientWidth), H = W < 480 ? 240 : 300;
-    const m = { t: 12, r: 44, b: 26, l: 44 };
+    const m = { t: 16, r: 66, b: 26, l: 44 };
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-    const S = { sls: series("sls", start, q), sol: series("sol", start, q) };
+    const S = { sls: series("sls", start, end, q), sol: series("sol", start, end, q) };
     const all = [...S.sls, ...S.sol].map((p) => p.r);
     let lo = Math.min(0, ...all), hi = Math.max(0, ...all);
     const pad = Math.max(0.02, (hi - lo) * 0.1); lo -= pad; hi += pad;
@@ -280,32 +316,42 @@ th:first-child, td:first-child { text-align: left; }
       g += `<text x="${m.l - 6}" y="${yy}" text-anchor="end" dominant-baseline="middle">${(v * 100).toFixed(Math.abs(step) < 0.01 ? 1 : 0)}%</text>`;
     }
     g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}" stroke="var(--muted)" stroke-width="1"/>`;
-    // x ticks: 1st of each month + end
+    // x ticks: start, quarterly months, end
     const ticks = [start];
-    for (let d = new Date(start); d < end; ) { d = new Date(d.getFullYear(), d.getMonth() + 1, 1); if (d < end) ticks.push(+d); }
+    for (let d = new Date(start); d < end; ) { d = new Date(d.getFullYear(), d.getMonth() + 1, 1); if (d < end && d.getMonth() % 3 === 0) ticks.push(+d); }
     ticks.push(end);
-    // Drop month ticks that would collide with the start/end labels
     while (ticks.length > 2 && x(end) - x(ticks[ticks.length - 2]) < 72) ticks.splice(ticks.length - 2, 1);
     while (ticks.length > 2 && x(ticks[1]) - x(start) < 72) ticks.splice(1, 1);
+    for (let i = ticks.length - 2; i > 1; i--) if (x(ticks[i]) - x(ticks[i - 1]) < 48) ticks.splice(i, 1);
     ticks.forEach((t, i) => {
       const anchor = i === 0 ? "start" : i === ticks.length - 1 ? "end" : "middle";
-      g += `<text x="${x(t).toFixed(1)}" y="${H - 6}" text-anchor="${anchor}">${fmtDate(t)}</text>`;
+      const opts = i === 0 || i === ticks.length - 1 ? { day: "numeric", month: "short", year: "2-digit" } : { month: "short" };
+      g += `<text x="${x(t).toFixed(1)}" y="${H - 6}" text-anchor="${anchor}">${fmtDate(t, opts)}</text>`;
     });
+    // Checkpoint markers (not the final, which is the right edge)
+    for (const cp of data.bet.checkpoints.slice(0, -1)) {
+      const cx = x(Date.parse(cp.settlementUtc)).toFixed(1);
+      g += `<line x1="${cx}" x2="${cx}" y1="${m.t}" y2="${H - m.b}" stroke="var(--muted)" stroke-dasharray="2 3"/>`;
+      g += `<text x="${cx}" y="${m.t - 4}" text-anchor="middle">${fmtDate(Date.parse(cp.settlementUtc))}</text>`;
+    }
     // Today marker
-    const now = Math.min(Date.now(), end);
-    g += `<line x1="${x(now).toFixed(1)}" x2="${x(now).toFixed(1)}" y1="${m.t}" y2="${H - m.b}" stroke="var(--border)" stroke-dasharray="3 3"/>`;
+    const nowX = x(Math.min(Date.now(), end)).toFixed(1);
+    g += `<line x1="${nowX}" x2="${nowX}" y1="${m.t}" y2="${H - m.b}" stroke="var(--border)" stroke-dasharray="3 3"/>`;
 
     let lines = "";
     for (const k of ["sol", "sls"]) {
       const d = S[k].map((p, i) => (i ? "L" : "M") + x(p.t).toFixed(1) + " " + y(p.r).toFixed(1)).join("");
-      const last = S[k][S[k].length - 1];
       lines += `<path d="${d}" fill="none" stroke="var(--${k})" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
-      lines += `<circle cx="${x(last.t).toFixed(1)}" cy="${y(last.r).toFixed(1)}" r="4" fill="var(--${k})" stroke="var(--surface)" stroke-width="2"/>`;
     }
-    // Direct labels at line ends, nudged apart if they collide
-    const ends = ["sls", "sol"].map((k) => { const l = S[k][S[k].length - 1]; return { k, x: x(l.t), y: y(l.r) }; });
-    if (Math.abs(ends[0].y - ends[1].y) < 14) { const mid = (ends[0].y + ends[1].y) / 2, up = ends[0].y <= ends[1].y ? 0 : 1; ends[up].y = mid - 7; ends[1 - up].y = mid + 7; }
-    for (const e of ends) lines += `<text x="${(e.x + 8).toFixed(1)}" y="${e.y.toFixed(1)}" dominant-baseline="middle" style="fill:var(--text-2);font-size:12px;font-weight:600">${e.k.toUpperCase()}</text>`;
+    // Emoji markers at the line ends, plus direct labels; nudged apart if they collide
+    const ends = KEYS.map((k) => { const l = S[k][S[k].length - 1]; return { k, x: x(l.t), y: y(l.r), ly: y(l.r) }; });
+    if (Math.abs(ends[0].ly - ends[1].ly) < 20) { const mid = (ends[0].ly + ends[1].ly) / 2, up = ends[0].ly <= ends[1].ly ? 0 : 1; ends[up].ly = mid - 10; ends[1 - up].ly = mid + 10; }
+    for (const e of ends) {
+      const a = data.bet.assets[e.k];
+      lines += `<circle cx="${e.x.toFixed(1)}" cy="${e.y.toFixed(1)}" r="3" fill="var(--${e.k})"/>`;
+      lines += `<text x="${(e.x + 6).toFixed(1)}" y="${e.ly.toFixed(1)}" dominant-baseline="middle" style="font-size:16px">${a.emoji}</text>`;
+      lines += `<text x="${(e.x + 27).toFixed(1)}" y="${e.ly.toFixed(1)}" dominant-baseline="middle" style="fill:var(--text-2);font-size:12px;font-weight:600">${esc(a.label)}</text>`;
+    }
 
     svg.innerHTML = `<g class="axis">${g}</g>${lines}<g id="hover"></g><rect x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" fill="transparent" id="hit"/>`;
 
@@ -321,9 +367,9 @@ th:first-child, td:first-child { text-align: left; }
       const ps = { sls: at(S.sls, t), sol: at(S.sol, t) };
       const cx = x(Math.min(t, lastT));
       hover.innerHTML = `<line x1="${cx}" x2="${cx}" y1="${m.t}" y2="${H - m.b}" stroke="var(--muted)" stroke-width="1"/>` +
-        ["sls", "sol"].map((k) => ps[k] ? `<circle cx="${x(ps[k].t)}" cy="${y(ps[k].r)}" r="4" fill="var(--${k})" stroke="var(--surface)" stroke-width="2"/>` : "").join("");
-      tip.innerHTML = `<b>${fmtDate(t, { weekday: "short", day: "numeric", month: "short" })}</b>` +
-        ["sls", "sol"].map((k) => `<div><i class="swatch" style="background:var(--${k})"></i>${k.toUpperCase()} <span class="num">${ps[k] ? fmtPct(ps[k].r) : "—"}</span></div>`).join("");
+        KEYS.map((k) => ps[k] ? `<circle cx="${x(ps[k].t)}" cy="${y(ps[k].r)}" r="4" fill="var(--${k})" stroke="var(--surface)" stroke-width="2"/>` : "").join("");
+      tip.innerHTML = `<b>${fmtDate(t, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</b>` +
+        KEYS.map((k) => `<div><i class="swatch" style="background:var(--${k})"></i>${k.toUpperCase()} <span class="num">${ps[k] ? fmtPct(ps[k].r) : "—"}</span></div>`).join("");
       tip.style.opacity = 1;
       const left = cx * rect.width / W;
       tip.style.left = Math.min(Math.max(0, left + 12), rect.width - tip.offsetWidth) + "px";
@@ -339,8 +385,8 @@ th:first-child, td:first-child { text-align: left; }
 
     // Table
     const rows = new Map();
-    for (const k of ["sls", "sol"]) for (const p of S[k]) {
-      const key = fmtDate(p.t, { day: "2-digit", month: "short", year: "numeric" });
+    for (const k of KEYS) for (const p of S[k]) {
+      const key = fmtLong(p.t);
       rows.set(key, { ...(rows.get(key) || { t: p.t }), [k]: p.r });
     }
     $("table").innerHTML = `<thead><tr><th>Date</th><th>SLS</th><th>SOL</th><th>Gap (SLS − SOL)</th></tr></thead><tbody>` +
@@ -360,7 +406,7 @@ th:first-child, td:first-child { text-align: left; }
   }
 
   async function loadLiveSol() {
-    if (!data || data.settlement) return;
+    if (!data || settledFor(finalCp())) return;
     try {
       const id = data.bet.assets.sol.coingecko;
       const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=aud&include_last_updated_at=true`);

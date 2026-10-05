@@ -85,10 +85,10 @@ async function firstOk(label, ...attempts) {
   return { error: errors.join(" | ") };
 }
 
-// SLS settlement: the ASX close dated the end date (Sydney time).
-function closeOn(history, dateIso) {
+// SLS settlement: the last ASX close on or before the checkpoint date (Sydney time).
+function closeOnOrBefore(history, dateIso) {
   const sydneyDate = (ms) => new Date(ms).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
-  return history.find((h) => sydneyDate(h.t) === dateIso) ?? null;
+  return history.filter((h) => sydneyDate(h.t) <= dateIso).at(-1) ?? null;
 }
 
 export async function build(bet, previous = null) {
@@ -98,7 +98,7 @@ export async function build(bet, previous = null) {
     bet,
     sls: await firstOk("SLS", () => yahoo(sls.yahoo, bet.madeOn), () => asx(sls.asxCode)),
     sol: await firstOk("SOL", () => yahoo(sol.yahoo, bet.madeOn), () => coingecko(sol.coingecko, bet.madeOn)),
-    settlement: previous?.settlement ?? null,
+    settlements: { ...(previous?.settlements ?? {}) },
   };
 
   // Keep the last good quote if a source fails, so the page never goes blank.
@@ -106,13 +106,13 @@ export async function build(bet, previous = null) {
     if (data[k].error && previous?.[k]?.price) data[k] = { ...previous[k], stale: true, error: data[k].error };
   }
 
-  // Lock in settlement prices once they exist (SLS close needs the ASX session to have ended).
-  const settleMs = Date.parse(bet.settlementUtc);
-  if (!data.settlement && Date.now() > settleMs + 2 * 3600 * 1000) {
-    const slsClose = data.sls.history ? closeOn(data.sls.history, bet.endDate) : null;
-    const solAt = await firstOk("SOL settle", () => coingeckoAt(sol.coingecko, bet.settlementUtc));
+  // Lock in each checkpoint's prices once they exist (2h after 4pm Sydney, so the ASX close is final).
+  for (const cp of bet.checkpoints) {
+    if (data.settlements[cp.id] || Date.now() < Date.parse(cp.settlementUtc) + 2 * 3600 * 1000) continue;
+    const slsClose = data.sls.history ? closeOnOrBefore(data.sls.history, cp.endDate) : null;
+    const solAt = await firstOk(`SOL settle ${cp.id}`, () => coingeckoAt(sol.coingecko, cp.settlementUtc));
     if (slsClose && solAt.price) {
-      data.settlement = {
+      data.settlements[cp.id] = {
         sls: { price: slsClose.p, priceTime: slsClose.t, source: data.sls.source },
         sol: solAt,
       };
