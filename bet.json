@@ -7,14 +7,16 @@
       "label": "Checkpoint",
       "endDate": "2026-11-19",
       "settlementUtc": "2026-11-19T05:00:00Z",
-      "stake": null
+      "stake": "Liam owes Henry his PS5 if SLS loses on this date.",
+      "note": "GTA 6 release date 🎮"
     },
     {
       "id": "sep27",
       "label": "Final",
       "endDate": "2027-09-12",
       "settlementUtc": "2027-09-12T06:00:00Z",
-      "stake": "Loser owes the winner a case of beers 🍺"
+      "stake": "Loser owes the other person a case of beer 🍺",
+      "note": "Year end 🍺"
     }
   ],
   "settlementNote": "Each checkpoint is scored on % return from the agreed start prices. SOL uses its AUD price at 4:00pm Sydney time on the checkpoint date. SLS uses its last ASX close on or before that date. 12 Sep 2027 is a Sunday, so the final uses SLS's Friday 10 Sep close.",
