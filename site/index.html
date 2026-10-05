@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SLS vs SOL Bet</title>
+<meta name="description" content="Live tracker: does SLS (ASX) beat Solana by 19 Nov 2026? Returns measured from the agreed start prices.">
+<meta property="og:title" content="SLS vs SOL — live bet tracker">
+<meta property="og:description" content="Does SLS outperform Solana by 19 Nov 2026? Live % returns from the agreed start prices.">
+<meta property="og:type" content="website">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f4f3ef;
+  --surface: #fcfcfb;
+  --border: #e3e1da;
+  --text: #0b0b0b;
+  --text-2: #52514e;
+  --muted: #8a8880;
+  --grid: #e9e7e1;
+  --sls: #2a78d6;
+  --sol: #eb6834;
+  --lead-bg: #eaf1fb;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #111110;
+    --surface: #1a1a19;
+    --border: #2d2c2a;
+    --text: #ffffff;
+    --text-2: #c3c2b7;
+    --muted: #8f8e86;
+    --grid: #2a2928;
+    --sls: #3987e5;
+    --sol: #d95926;
+    --lead-bg: #1d2633;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111110; --surface: #1a1a19; --border: #2d2c2a; --text: #ffffff; --text-2: #c3c2b7;
+  --muted: #8f8e86; --grid: #2a2928; --sls: #3987e5; --sol: #d95926; --lead-bg: #1d2633;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
+header h1 { font-size: 28px; line-height: 1.15; margin: 0 0 4px; letter-spacing: -0.01em; }
+header p { margin: 0; color: var(--text-2); }
+.num { font-variant-numeric: tabular-nums; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-top: 16px; }
+.hero { text-align: center; padding: 24px 18px; }
+.hero .who { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-2); margin: 0; }
+.hero .big { font-size: 40px; font-weight: 700; line-height: 1.1; margin: 6px 0; }
+.hero .sub { color: var(--text-2); margin: 0; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+.grid2 .card { margin-top: 0; }
+.asset .tag { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.swatch { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.asset .name { color: var(--muted); font-size: 12px; margin: 0 0 10px; }
+.asset .ret { font-size: 30px; font-weight: 700; line-height: 1.1; }
+.asset dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 10px 0 0; font-size: 13px; }
+.asset dt { color: var(--muted); }
+.asset dd { margin: 0; text-align: right; }
+.asset.leading { box-shadow: inset 0 0 0 2px var(--lead-color); }
+.badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: var(--lead-bg); color: var(--text); margin-left: auto; }
+h2 { font-size: 15px; margin: 0 0 4px; }
+.caption { color: var(--muted); font-size: 12px; margin: 0 0 8px; }
+.legend { display: flex; gap: 16px; font-size: 13px; color: var(--text-2); margin-bottom: 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.chart-wrap { position: relative; }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+.axis text { fill: var(--muted); font-size: 11px; }
+.tip {
+  position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.12);
+  white-space: nowrap; opacity: 0; transition: opacity .1s;
+}
+.tip b { display: block; margin-bottom: 2px; }
+.tip div { display: flex; align-items: center; gap: 6px; }
+.progress { height: 6px; border-radius: 99px; background: var(--grid); overflow: hidden; margin: 10px 0 4px; }
+.progress > div { height: 100%; background: var(--text-2); }
+.row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--text-2); }
+.rules p, .rules li { color: var(--text-2); font-size: 13px; }
+.rules ul { padding-left: 18px; margin: 6px 0; }
+footer { color: var(--muted); font-size: 12px; margin-top: 20px; text-align: center; }
+.warn { color: var(--text); background: var(--lead-bg); border-radius: 8px; padding: 8px 10px; font-size: 13px; margin-top: 12px; display: none; }
+details summary { cursor: pointer; font-size: 13px; color: var(--text-2); }
+table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+th, td { text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--grid); }
+th:first-child, td:first-child { text-align: left; }
+@media (max-width: 480px) {
+  .grid2 { grid-template-columns: 1fr; }
+  .hero .big { font-size: 32px; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>SLS vs SOL</h1>
+    <p>Bet: <strong>SLS</strong> (ASX) outperforms <strong>Solana</strong> by 19 Nov 2026.</p>
+  </header>
+
+  <section class="card hero" aria-live="polite">
+    <p class="who" id="hero-who">Loading prices…</p>
+    <p class="big num" id="hero-big">—</p>
+    <p class="sub" id="hero-sub"></p>
+    <div class="progress" aria-hidden="true"><div id="progress"></div></div>
+    <div class="row num"><span id="made"></span><span id="countdown"></span></div>
+  </section>
+
+  <div class="grid2">
+    <section class="card asset" id="card-sls" style="--lead-color: var(--sls)"></section>
+    <section class="card asset" id="card-sol" style="--lead-color: var(--sol)"></section>
+  </div>
+
+  <div class="warn" id="warn"></div>
+
+  <section class="card">
+    <h2>Return since the bet was made</h2>
+    <p class="caption">% change from the agreed start prices. SLS plots ASX trading-day closes; SOL plots daily prices. Last point is the latest price.</p>
+    <div class="legend">
+      <span><i class="swatch" style="background:var(--sls)"></i>SLS</span>
+      <span><i class="swatch" style="background:var(--sol)"></i>SOL</span>
+    </div>
+    <div class="chart-wrap" id="chart-wrap">
+      <svg id="chart" role="img" aria-label="Line chart of SLS and SOL percentage returns since 12 Sep 2026"></svg>
+      <div class="tip" id="tip"></div>
+    </div>
+    <details>
+      <summary>Show data table</summary>
+      <table id="table"></table>
+    </details>
+  </section>
+
+  <section class="card rules">
+    <h2>Rules</h2>
+    <p id="rule-text"></p>
+    <ul>
+      <li>Start prices (agreed): <span class="num" id="rule-start"></span></li>
+      <li>Market data near the start, as a cross-check: <span class="num" id="rule-check">—</span></li>
+      <li>This page ignores fees, dividends and staking rewards. It compares price only.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <div id="updated">—</div>
+    <div>SLS quotes are delayed about 20 min and refresh every ~15 min. SOL updates live from CoinGecko where it's available.</div>
+  </footer>
+</main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const DAY = 86400000;
+  const tz = "Australia/Sydney";
+  const fmtAud = (v, d) => v == null ? "—" : "A$" + v.toLocaleString("en-AU", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const fmtPct = (v) => v == null ? "—" : (v >= 0 ? "+" : "−") + Math.abs(v * 100).toFixed(2) + "%";
+  const fmtPts = (v) => Math.abs(v * 100).toFixed(2) + " pts";
+  const fmtDate = (ms, opts = { day: "numeric", month: "short" }) => new Date(ms).toLocaleDateString("en-AU", { timeZone: tz, ...opts });
+  const fmtTime = (ms) => new Date(ms).toLocaleString("en-AU", { timeZone: tz, day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) + " AEST/AEDT";
+  const decimals = { sls: 3, sol: 2 };
+
+  let data = null;
+  let liveSol = null; // { price, priceTime } from the browser, if CoinGecko allows it
+
+  function current(k) {
+    if (data.settlement) return data.settlement[k];
+    if (k === "sol" && liveSol && liveSol.priceTime > (data.sol.priceTime || 0)) return { ...liveSol, source: "CoinGecko (live)" };
+    return data[k];
+  }
+
+  function render() {
+    const bet = data.bet;
+    const start = Date.parse(bet.madeOn + "T00:00:00+10:00");
+    const end = Date.parse(bet.settlementUtc);
+    const now = Date.now();
+    const q = { sls: current("sls"), sol: current("sol") };
+    const ret = {};
+    for (const k of ["sls", "sol"]) ret[k] = q[k]?.price ? q[k].price / bet.assets[k].startPrice - 1 : null;
+
+    // Hero
+    const settled = !!data.settlement;
+    if (ret.sls != null && ret.sol != null) {
+      const gap = ret.sls - ret.sol;
+      const leader = gap >= 0 ? "SLS" : "SOL";
+      $("hero-who").textContent = settled ? "Final result" : "Currently winning";
+      $("hero-big").textContent = settled ? `${leader} wins` : `${leader} by ${fmtPts(gap)}`;
+      $("hero-big").innerHTML = `<i class="swatch" style="background:var(--${leader.toLowerCase()});width:.4em;height:.4em;display:inline-block;vertical-align:middle;margin-right:.25em"></i>` + $("hero-big").textContent;
+      const tieSls = bet.assets.sls.startPrice * (1 + ret.sol);
+      $("hero-sub").textContent = settled
+        ? `SLS ${fmtPct(ret.sls)} vs SOL ${fmtPct(ret.sol)}, a margin of ${fmtPts(gap)}.`
+        : gap >= 0
+          ? `SLS stays ahead while it trades above ${fmtAud(tieSls, 3)} (at today's SOL price).`
+          : `SLS needs ${fmtAud(tieSls, 3)} to draw level (at today's SOL price).`;
+      for (const k of ["sls", "sol"]) $("card-" + k).classList.toggle("leading", leader.toLowerCase() === k);
+    } else {
+      $("hero-who").textContent = "Price data unavailable";
+      $("hero-big").textContent = "—";
+    }
+    const frac = Math.min(1, Math.max(0, (now - start) / (end - start)));
+    $("progress").style.width = (frac * 100).toFixed(1) + "%";
+    $("made").textContent = "Made " + fmtDate(start, { day: "numeric", month: "short", year: "numeric" });
+    const daysLeft = Math.ceil((end - now) / DAY);
+    $("countdown").textContent = settled || daysLeft <= 0 ? "Settled 19 Nov 2026" : `${daysLeft} day${daysLeft === 1 ? "" : "s"} to go`;
+
+    // Cards
+    for (const k of ["sls", "sol"]) {
+      const a = bet.assets[k];
+      const qq = q[k] || {};
+      const el = $("card-" + k);
+      const leading = el.classList.contains("leading");
+      el.innerHTML = `
+        <div class="tag"><i class="swatch" style="background:var(--${k})"></i>${a.label}${leading ? `<span class="badge">${settled ? "Winner" : "Leading"}</span>` : ""}</div>
+        <p class="name">${a.name}</p>
+        <div class="ret num">${fmtPct(ret[k])}</div>
+        <dl class="num">
+          <dt>Start</dt><dd>${fmtAud(a.startPrice, decimals[k])}</dd>
+          <dt>${settled ? "Final" : "Now"}</dt><dd>${fmtAud(qq.price, decimals[k])}</dd>
+          <dt>As of</dt><dd>${qq.priceTime ? fmtTime(qq.priceTime).replace(" AEST/AEDT", "") : "—"}</dd>
+        </dl>`;
+    }
+
+    // Warnings
+    const warns = [];
+    for (const k of ["sls", "sol"]) if (data[k]?.stale) warns.push(`${bet.assets[k].label}: the latest fetch failed, so this shows the last good price.`);
+    if (now - data.generatedAt > 3 * 3600 * 1000 && !settled) warns.push("The server data is more than 3 hours old. The scheduled update may have stopped.");
+    $("warn").style.display = warns.length ? "block" : "none";
+    $("warn").textContent = warns.join(" ");
+
+    // Rules
+    $("rule-text").textContent = bet.settlementNote;
+    $("rule-start").textContent = `SLS ${fmtAud(bet.assets.sls.startPrice, 3)}, SOL ${fmtAud(bet.assets.sol.startPrice, 2)}`;
+    const ref = (k) => {
+      const h = (data[k]?.history || []).filter((p) => p.t <= start + DAY);
+      const p = h[h.length - 1];
+      return p ? `${bet.assets[k].label} ${fmtAud(p.p, decimals[k])} (${fmtDate(p.t)})` : null;
+    };
+    const refs = [ref("sls"), ref("sol")].filter(Boolean);
+    if (refs.length) $("rule-check").textContent = refs.join(", ");
+
+    $("updated").textContent = "Server data updated " + fmtTime(data.generatedAt);
+
+    drawChart(start, end, q);
+  }
+
+  function series(k, start, q) {
+    const sp = data.bet.assets[k].startPrice;
+    const pts = [{ t: start, r: 0 }];
+    for (const h of data[k]?.history || []) if (h.t > start && h.t <= Date.parse(data.bet.settlementUtc) + DAY) pts.push({ t: h.t, r: h.p / sp - 1 });
+    if (q[k]?.price && q[k].priceTime > pts[pts.length - 1].t) pts.push({ t: q[k].priceTime, r: q[k].price / sp - 1 });
+    return pts;
+  }
+
+  function drawChart(start, end, q) {
+    const svg = $("chart");
+    const W = Math.max(300, $("chart-wrap").clientWidth), H = W < 480 ? 240 : 300;
+    const m = { t: 12, r: 44, b: 26, l: 44 };
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const S = { sls: series("sls", start, q), sol: series("sol", start, q) };
+    const all = [...S.sls, ...S.sol].map((p) => p.r);
+    let lo = Math.min(0, ...all), hi = Math.max(0, ...all);
+    const pad = Math.max(0.02, (hi - lo) * 0.1); lo -= pad; hi += pad;
+    const x = (t) => m.l + (t - start) / (end - start) * (W - m.l - m.r);
+    const y = (r) => m.t + (hi - r) / (hi - lo) * (H - m.t - m.b);
+
+    // Nice y ticks
+    const span = hi - lo, raw = span / 5, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map((s) => s * mag).find((s) => s >= raw);
+    let g = "";
+    for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) {
+      const yy = y(v).toFixed(1);
+      g += `<line x1="${m.l}" x2="${W - m.r}" y1="${yy}" y2="${yy}" stroke="var(--grid)" stroke-width="${Math.abs(v) < 1e-9 ? 0 : 1}"/>`;
+      g += `<text x="${m.l - 6}" y="${yy}" text-anchor="end" dominant-baseline="middle">${(v * 100).toFixed(Math.abs(step) < 0.01 ? 1 : 0)}%</text>`;
+    }
+    g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}" stroke="var(--muted)" stroke-width="1"/>`;
+    // x ticks: 1st of each month + end
+    const ticks = [start];
+    for (let d = new Date(start); d < end; ) { d = new Date(d.getFullYear(), d.getMonth() + 1, 1); if (d < end) ticks.push(+d); }
+    ticks.push(end);
+    // Drop month ticks that would collide with the start/end labels
+    while (ticks.length > 2 && x(end) - x(ticks[ticks.length - 2]) < 72) ticks.splice(ticks.length - 2, 1);
+    while (ticks.length > 2 && x(ticks[1]) - x(start) < 72) ticks.splice(1, 1);
+    ticks.forEach((t, i) => {
+      const anchor = i === 0 ? "start" : i === ticks.length - 1 ? "end" : "middle";
+      g += `<text x="${x(t).toFixed(1)}" y="${H - 6}" text-anchor="${anchor}">${fmtDate(t)}</text>`;
+    });
+    // Today marker
+    const now = Math.min(Date.now(), end);
+    g += `<line x1="${x(now).toFixed(1)}" x2="${x(now).toFixed(1)}" y1="${m.t}" y2="${H - m.b}" stroke="var(--border)" stroke-dasharray="3 3"/>`;
+
+    let lines = "";
+    for (const k of ["sol", "sls"]) {
+      const d = S[k].map((p, i) => (i ? "L" : "M") + x(p.t).toFixed(1) + " " + y(p.r).toFixed(1)).join("");
+      const last = S[k][S[k].length - 1];
+      lines += `<path d="${d}" fill="none" stroke="var(--${k})" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+      lines += `<circle cx="${x(last.t).toFixed(1)}" cy="${y(last.r).toFixed(1)}" r="4" fill="var(--${k})" stroke="var(--surface)" stroke-width="2"/>`;
+    }
+    // Direct labels at line ends, nudged apart if they collide
+    const ends = ["sls", "sol"].map((k) => { const l = S[k][S[k].length - 1]; return { k, x: x(l.t), y: y(l.r) }; });
+    if (Math.abs(ends[0].y - ends[1].y) < 14) { const mid = (ends[0].y + ends[1].y) / 2, up = ends[0].y <= ends[1].y ? 0 : 1; ends[up].y = mid - 7; ends[1 - up].y = mid + 7; }
+    for (const e of ends) lines += `<text x="${(e.x + 8).toFixed(1)}" y="${e.y.toFixed(1)}" dominant-baseline="middle" style="fill:var(--text-2);font-size:12px;font-weight:600">${e.k.toUpperCase()}</text>`;
+
+    svg.innerHTML = `<g class="axis">${g}</g>${lines}<g id="hover"></g><rect x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" fill="transparent" id="hit"/>`;
+
+    // Crosshair + tooltip
+    const tip = $("tip"), hover = svg.querySelector("#hover");
+    const at = (pts, t) => { let best = null; for (const p of pts) if (p.t <= t + DAY / 2) best = p; return best; };
+    const move = (ev) => {
+      const rect = svg.getBoundingClientRect();
+      const px = (ev.touches ? ev.touches[0].clientX : ev.clientX) - rect.left;
+      const t = start + ((px * W / rect.width) - m.l) / (W - m.l - m.r) * (end - start);
+      const lastT = Math.max(S.sls[S.sls.length - 1].t, S.sol[S.sol.length - 1].t);
+      if (t < start || t > lastT + DAY / 2) return leave();
+      const ps = { sls: at(S.sls, t), sol: at(S.sol, t) };
+      const cx = x(Math.min(t, lastT));
+      hover.innerHTML = `<line x1="${cx}" x2="${cx}" y1="${m.t}" y2="${H - m.b}" stroke="var(--muted)" stroke-width="1"/>` +
+        ["sls", "sol"].map((k) => ps[k] ? `<circle cx="${x(ps[k].t)}" cy="${y(ps[k].r)}" r="4" fill="var(--${k})" stroke="var(--surface)" stroke-width="2"/>` : "").join("");
+      tip.innerHTML = `<b>${fmtDate(t, { weekday: "short", day: "numeric", month: "short" })}</b>` +
+        ["sls", "sol"].map((k) => `<div><i class="swatch" style="background:var(--${k})"></i>${k.toUpperCase()} <span class="num">${ps[k] ? fmtPct(ps[k].r) : "—"}</span></div>`).join("");
+      tip.style.opacity = 1;
+      const left = cx * rect.width / W;
+      tip.style.left = Math.min(Math.max(0, left + 12), rect.width - tip.offsetWidth) + "px";
+      tip.style.top = "8px";
+    };
+    const leave = () => { hover.innerHTML = ""; tip.style.opacity = 0; };
+    const hit = svg.querySelector("#hit");
+    hit.addEventListener("mousemove", move);
+    hit.addEventListener("touchmove", move, { passive: true });
+    hit.addEventListener("touchstart", move, { passive: true });
+    hit.addEventListener("mouseleave", leave);
+    hit.addEventListener("touchend", leave);
+
+    // Table
+    const rows = new Map();
+    for (const k of ["sls", "sol"]) for (const p of S[k]) {
+      const key = fmtDate(p.t, { day: "2-digit", month: "short", year: "numeric" });
+      rows.set(key, { ...(rows.get(key) || { t: p.t }), [k]: p.r });
+    }
+    $("table").innerHTML = `<thead><tr><th>Date</th><th>SLS</th><th>SOL</th><th>Gap (SLS − SOL)</th></tr></thead><tbody>` +
+      [...rows.entries()].sort((a, b) => b[1].t - a[1].t).map(([d, r]) =>
+        `<tr class="num"><td>${d}</td><td>${fmtPct(r.sls)}</td><td>${fmtPct(r.sol)}</td><td>${r.sls != null && r.sol != null ? fmtPct(r.sls - r.sol).replace("%", " pts") : "—"}</td></tr>`).join("") + "</tbody>";
+  }
+
+  async function loadData() {
+    try {
+      const res = await fetch("data.json?ts=" + Date.now(), { cache: "no-store" });
+      if (!res.ok) throw new Error(res.status);
+      data = await res.json();
+      render();
+    } catch (e) {
+      if (!data) $("hero-who").textContent = "Couldn't load price data. Try refreshing.";
+    }
+  }
+
+  async function loadLiveSol() {
+    if (!data || data.settlement) return;
+    try {
+      const id = data.bet.assets.sol.coingecko;
+      const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=aud&include_last_updated_at=true`);
+      const j = await res.json();
+      if (Number.isFinite(j?.[id]?.aud)) { liveSol = { price: j[id].aud, priceTime: j[id].last_updated_at * 1000 }; render(); }
+    } catch (e) { /* server data is the fallback */ }
+  }
+
+  loadData().then(loadLiveSol);
+  setInterval(loadData, 5 * 60 * 1000);
+  setInterval(loadLiveSol, 60 * 1000);
+  let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => data && render(), 150); });
+})();
+</script>
+</body>
+</html>

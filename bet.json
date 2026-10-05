@@ -1,0 +1,23 @@
+{
+  "title": "SLS vs SOL",
+  "madeOn": "2026-09-12",
+  "endDate": "2026-11-19",
+  "settlementUtc": "2026-11-19T05:00:00Z",
+  "settlementNote": "Settles on % return from the agreed start prices. SLS uses its ASX closing price on 19 Nov 2026. SOL uses its AUD price at the ASX close (4:00pm AEDT, 05:00 UTC) on the same day.",
+  "assets": {
+    "sls": {
+      "label": "SLS",
+      "name": "Solstice Minerals (ASX:SLS)",
+      "startPrice": 2.70,
+      "yahoo": "SLS.AX",
+      "asxCode": "SLS"
+    },
+    "sol": {
+      "label": "SOL",
+      "name": "Solana (SOL/AUD)",
+      "startPrice": 141.94,
+      "yahoo": "SOL-AUD",
+      "coingecko": "solana"
+    }
+  }
+}
