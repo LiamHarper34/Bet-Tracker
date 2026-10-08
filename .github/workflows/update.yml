@@ -32,6 +32,10 @@ jobs:
           # Last deployed data, used as a fallback if a price source is down
           export PREVIOUS_URL="https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/data.json"
           node scripts/fetch-prices.mjs site/data.json
+      - name: Price correlation (manual runs only)
+        if: github.event_name == 'workflow_dispatch'
+        continue-on-error: true
+        run: node scripts/correlation.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
