@@ -105,6 +105,18 @@ async function firstOk(label, ...attempts) {
   return { error: errors.join(" | ") };
 }
 
+// SOL settlement: ask both sources and keep the price stamped closest to the settlement time
+// (Yahoo on a tie). Either source alone is enough.
+export async function solAtMoment(sol, iso) {
+  const t = Date.parse(iso);
+  const got = [];
+  for (const [label, fn] of [["Yahoo", () => yahooAt(sol.yahoo, iso)], ["CoinGecko", () => coingeckoAt(sol.coingecko, iso)]]) {
+    try { got.push(await fn()); } catch (e) { console.warn(`[SOL settle ${label}] ${e.message}`); }
+  }
+  if (!got.length) return { error: "no SOL settlement price from any source" };
+  return got.reduce((a, b) => (Math.abs(b.priceTime - t) < Math.abs(a.priceTime - t) ? b : a));
+}
+
 // SLS settlement: the last ASX close on or before the checkpoint date (Sydney time).
 export function closeOnOrBefore(history, dateIso) {
   const sydneyDate = (ms) => new Date(ms).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
@@ -130,7 +142,7 @@ export async function build(bet, previous = null) {
   for (const cp of bet.checkpoints) {
     if (data.settlements[cp.id] || Date.now() < Date.parse(cp.settlementUtc) + 2 * 3600 * 1000) continue;
     const slsClose = data.sls.history ? closeOnOrBefore(data.sls.history, cp.endDate) : null;
-    const solAt = await firstOk(`SOL settle ${cp.id}`, () => yahooAt(sol.yahoo, cp.settlementUtc), () => coingeckoAt(sol.coingecko, cp.settlementUtc));
+    const solAt = await solAtMoment(sol, cp.settlementUtc);
     if (slsClose && solAt.price) {
       data.settlements[cp.id] = {
         sls: { price: slsClose.p, priceTime: slsClose.t, source: data.sls.source },
