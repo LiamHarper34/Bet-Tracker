@@ -11,7 +11,19 @@
         "SLS loses: Dale owes Henry his PS5.",
         "SLS wins: Dale gets the satisfaction of being right and the glory of winning 🏆"
       ],
-      "note": "GTA 6 release date 🎮"
+      "note": "GTA 6 release date 🎮",
+      "celebrate": {
+        "sls": {
+          "headline": "Dale wins the GTA 6 checkpoint! 🏆",
+          "sub": "The satisfaction of being right and the glory of winning.",
+          "prop": "trophy"
+        },
+        "sol": {
+          "headline": "Henry wins the PS5! 🎮",
+          "sub": "Dale owes Henry his PS5.",
+          "prop": "ps5"
+        }
+      }
     },
     {
       "id": "sep27",
@@ -19,7 +31,19 @@
       "endDate": "2027-09-12",
       "settlementUtc": "2027-09-12T06:00:00Z",
       "stake": "Loser owes the other person a case of beer 🍺",
-      "note": "Year end 🍺"
+      "note": "Year end 🍺",
+      "celebrate": {
+        "sls": {
+          "headline": "Dale wins the year! 🍺",
+          "sub": "Henry owes Dale a case of beer.",
+          "prop": "beer"
+        },
+        "sol": {
+          "headline": "Henry wins the year! 🍺",
+          "sub": "Dale owes Henry a case of beer.",
+          "prop": "beer"
+        }
+      }
     }
   ],
   "settlementNote": "Each checkpoint is scored on % return from the agreed start prices. SOL uses its AUD price at 4:00pm Sydney time on the checkpoint date. SLS uses its last ASX close on or before that date. 12 Sep 2027 is a Sunday, so the final uses SLS's Friday 10 Sep close.",
@@ -30,7 +54,8 @@
       "name": "Solstice Minerals (ASX:SLS)",
       "startPrice": 2.37,
       "yahoo": "SLS.AX",
-      "asxCode": "SLS"
+      "asxCode": "SLS",
+      "backer": "Dale"
     },
     "sol": {
       "label": "SOL",
@@ -38,7 +63,8 @@
       "name": "Solana (SOL/AUD)",
       "startPrice": 141.94,
       "yahoo": "SOL-AUD",
-      "coingecko": "solana"
+      "coingecko": "solana",
+      "backer": "Henry"
     }
   }
 }

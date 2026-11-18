@@ -105,6 +105,40 @@ details summary { cursor: pointer; font-size: 13px; color: var(--text-2); }
 table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
 th, td { text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--grid); }
 th:first-child, td:first-child { text-align: left; }
+/* Winner celebration */
+.celebrate { text-align: center; overflow: hidden; position: relative; }
+.celebrate[hidden] { display: none; }
+.celebrate h2 { font-size: 22px; margin: 0 0 2px; }
+.celebrate .sub { color: var(--text-2); margin: 0 0 4px; font-size: 14px; }
+.celebrate .preview { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); background: var(--grid); border-radius: 99px; padding: 2px 8px; margin-bottom: 6px; }
+.stage { position: relative; max-width: 420px; margin: 0 auto; }
+.stage svg { width: 100%; height: auto; overflow: visible; }
+.stage text { font-family: inherit; }
+.char-name { fill: var(--text); font-size: 13px; font-weight: 700; }
+.char-tag { fill: var(--text-2); font-size: 11px; }
+.limb { stroke: var(--text-2); stroke-width: 6; stroke-linecap: round; fill: none; }
+.face { stroke: #3a2a1a; stroke-width: 2.2; stroke-linecap: round; fill: none; }
+.happy .bob { animation: jump .7s ease-in-out infinite; }
+.happy .arm-l { animation: wave-l .35s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 100% 100%; }
+.happy .arm-r { animation: wave-r .35s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 0% 100%; }
+.happy.holding .arm-l, .happy.holding .arm-r { animation: none; }
+.sad .slump { animation: sway 3s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+.sad .tear { animation: tear 1.6s ease-in infinite; }
+.sad .rain line { stroke: #6aa0d8; stroke-width: 2; stroke-linecap: round; animation: rain .9s linear infinite; }
+.sad .rain line:nth-child(2) { animation-delay: .3s; } .sad .rain line:nth-child(3) { animation-delay: .6s; }
+@keyframes jump { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(-26px); } }
+@keyframes wave-l { from { transform: rotate(-12deg); } to { transform: rotate(14deg); } }
+@keyframes wave-r { from { transform: rotate(12deg); } to { transform: rotate(-14deg); } }
+@keyframes sway { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+@keyframes tear { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(26px); opacity: 0; } }
+@keyframes rain { from { transform: translateY(0); opacity: 1; } to { transform: translateY(18px); opacity: 0; } }
+.confetti { position: absolute; inset: 0; pointer-events: none; }
+.confetti i { position: absolute; top: -12px; width: 7px; height: 11px; border-radius: 2px; animation: fall linear infinite; }
+@keyframes fall { from { transform: translateY(0) rotate(0); } to { transform: translateY(340px) rotate(540deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .celebrate *, .celebrate *::before { animation: none !important; }
+  .confetti { display: none; }
+}
 @media (max-width: 480px) {
   .grid2 { grid-template-columns: 1fr; }
   .hero .big { font-size: 32px; }
@@ -125,6 +159,8 @@ th:first-child, td:first-child { text-align: left; }
     <div class="progress" aria-hidden="true"><div id="progress"></div></div>
     <div class="row num"><span id="made"></span><span id="countdown"></span></div>
   </section>
+
+  <section class="card celebrate" id="celebrate" hidden aria-live="polite"></section>
 
   <section class="card">
     <h2>Checkpoints</h2>
@@ -301,6 +337,81 @@ th:first-child, td:first-child { text-align: left; }
       `<button type="button" data-id="${cp.id}" aria-pressed="${cp.id === rangeId}">${i === cps.length - 1 ? "Full bet" : "To " + fmtDate(Date.parse(cp.settlementUtc))}</button>`).join("");
     const viewCp = cps.find((cp) => cp.id === rangeId) || fin;
     drawChart(start, Date.parse(viewCp.settlementUtc), q);
+    renderCelebration();
+  }
+
+  // ---- Winner celebration ----
+  const SKIN = "#f1c27d";
+  function propSvg(prop) {
+    if (prop === "ps5") // a generic white console with a black core, held overhead
+      return `<g transform="translate(0,-132)">
+        <path d="M-15 -22 Q-17 0 -14 22 L-4 22 L-4 -22 Z" fill="#f5f5f5" stroke="#999" stroke-width="1"/>
+        <path d="M15 -22 Q17 0 14 22 L4 22 L4 -22 Z" fill="#f5f5f5" stroke="#999" stroke-width="1"/>
+        <rect x="-4" y="-20" width="8" height="40" rx="2" fill="#151515"/>
+        <text x="0" y="-27" text-anchor="middle" style="font-size:11px;font-weight:800;fill:var(--text)">PS5</text></g>`;
+    const emoji = prop === "beer" ? "🍺" : "🏆";
+    return `<text x="0" y="-104" text-anchor="middle" style="font-size:30px">${emoji}</text>`;
+  }
+  function character(name, tag, color, mood, prop, x) {
+    const head = `<circle cx="0" cy="-82" r="16" fill="${SKIN}"/>`;
+    if (mood === "happy") {
+      const holding = prop === "ps5";
+      const arms = holding
+        ? `<path class="limb" d="M-13 -58 L-17 -108"/><path class="limb" d="M13 -58 L17 -108"/>`
+        : `<g class="arm-l"><path class="limb" d="M-30 -92 L-13 -58"/></g><g class="arm-r"><path class="limb" d="M13 -58 L30 -92"/></g>`;
+      return `<g class="happy${holding ? " holding" : ""}" transform="translate(${x},180)">
+        <g class="bob">
+          <path class="limb" d="M-9 0 L-6 -28 M9 0 L6 -28"/>
+          <rect x="-16" y="-66" width="32" height="40" rx="12" fill="${color}"/>
+          ${arms}${head}
+          <path class="face" d="M-6 -88 l0 2 M6 -88 l0 2"/>
+          <path d="M-8 -78 Q0 -67 8 -78 Z" fill="#7a2e1a"/>
+          ${holding ? propSvg(prop) : `<g transform="translate(${prop === "beer" ? 30 : 32},4)">${propSvg(prop)}</g>`}
+        </g>
+        <text class="char-name" x="0" y="20" text-anchor="middle">${esc(name)}</text>
+        <text class="char-tag" x="0" y="35" text-anchor="middle">${esc(tag)}</text></g>`;
+    }
+    return `<g class="sad" transform="translate(${x},180)">
+      <g class="rain" transform="translate(0,-132)">
+        <path d="M-26 0 a12 12 0 0 1 10 -16 a16 16 0 0 1 28 -2 a11 11 0 0 1 14 18 Z" fill="#9aa3ad"/>
+        <line x1="-14" y1="4" x2="-16" y2="12"/><line x1="0" y1="4" x2="-2" y2="12"/><line x1="14" y1="4" x2="12" y2="12"/></g>
+      <g class="slump">
+        <path class="limb" d="M-9 0 L-7 -28 M9 0 L7 -28"/>
+        <rect x="-16" y="-66" width="32" height="40" rx="12" fill="${color}" opacity=".85"/>
+        <path class="limb" d="M-13 -58 L-19 -30 M13 -58 L19 -30"/>
+        <g transform="rotate(12 0 -70)">${head}
+          <path class="face" d="M-10 -90 l6 -2 M10 -90 l-6 -2 M-6 -85 l0 1.5 M6 -85 l0 1.5"/>
+          <path class="face" d="M-7 -73 Q0 -80 7 -73"/>
+          <path class="tear" d="M7 -84 q3 5 0 7 q-3 -2 0 -7 Z" fill="#6aa0d8"/></g>
+      </g>
+      <text class="char-name" x="0" y="20" text-anchor="middle">${esc(name)}</text>
+      <text class="char-tag" x="0" y="35" text-anchor="middle">${esc(tag)}</text></g>`;
+  }
+  function renderCelebration() {
+    const el = $("celebrate"), A = data.bet.assets, cps = data.bet.checkpoints;
+    const params = new URLSearchParams(location.search);
+    const previewKey = ["sls", "sol"].includes(params.get("preview")) ? params.get("preview") : null;
+    let cp = null, winKey = null;
+    if (previewKey) {
+      cp = cps.find((c) => c.id === params.get("cp")) || cps.find((c) => !settledFor(c)) || cps[0];
+      winKey = previewKey;
+    } else {
+      cp = [...cps].reverse().find((c) => settledFor(c)) || null;
+      if (cp) winKey = winner(returns(settledFor(cp)));
+    }
+    if (!cp || !cp.celebrate) { el.hidden = true; el.innerHTML = ""; return; }
+    const c = cp.celebrate[winKey], loseKey = winKey === "sls" ? "sol" : "sls";
+    // Winner on the left, loser on the right; each keeps their own colour
+    const chars = character(A[winKey].backer, `Team ${A[winKey].label} ${A[winKey].emoji}`, `var(--${winKey})`, "happy", c.prop, 110) +
+                  character(A[loseKey].backer, `Team ${A[loseKey].label} ${A[loseKey].emoji}`, `var(--${loseKey})`, "sad", null, 290);
+    const colors = ["var(--sls)", "var(--sol)", "#1baf7a", "#eda100", "#e87ba4"];
+    const confetti = Array.from({ length: 28 }, (_, i) =>
+      `<i style="left:${(i * 37) % 100}%;background:${colors[i % colors.length]};animation-duration:${2.2 + (i % 5) * 0.35}s;animation-delay:${-(i % 7) * 0.4}s"></i>`).join("");
+    el.innerHTML = (previewKey ? `<span class="preview">Preview: not the real result</span>` : "") +
+      `<h2>${esc(c.headline)}</h2><p class="sub">${esc(c.sub)}</p>
+      <div class="stage"><div class="confetti" aria-hidden="true">${confetti}</div>
+      <svg viewBox="0 -30 400 250" role="img" aria-label="${esc(A[winKey].backer)} celebrating and ${esc(A[loseKey].backer)} looking sad">${chars}</svg></div>`;
+    el.hidden = false;
   }
 
   function series(k, start, end, q) {
