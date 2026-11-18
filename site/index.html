@@ -247,7 +247,8 @@ th:first-child, td:first-child { text-align: left; }
       if (st) {
         const r = returns(st), w = A[winner(r)];
         status = `<span class="result">${esc(w.label + " " + w.emoji)} won</span>`;
-        detail = `SLS ${fmtPct(r.sls)} (${fmtAud(st.sls.price, 3)}) vs SOL ${fmtPct(r.sol)} (${fmtAud(st.sol.price, 2)}), margin ${fmtPts(r.sls - r.sol)}.`;
+        detail = `SLS ${fmtPct(r.sls)} (${fmtAud(st.sls.price, 3)}) vs SOL ${fmtPct(r.sol)} (${fmtAud(st.sol.price, 2)}), margin ${fmtPts(r.sls - r.sol)}.<br>` +
+          `Prices used: SLS ASX close on ${fmtLong(st.sls.priceTime)} (${esc(st.sls.source)}); SOL at ${fmtTime(st.sol.priceTime)} Sydney time (${esc(st.sol.source)}).`;
       } else if (d > 0) {
         status = `in ${plural(d, "day")}`;
       } else {

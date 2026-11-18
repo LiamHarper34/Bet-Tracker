@@ -62,7 +62,27 @@ export async function coingecko(id, fromIso) {
   };
 }
 
-// SOL/AUD at a specific moment (settlement), from CoinGecko's hourly range data.
+// Price at a specific moment (settlement) from Yahoo's intraday bars. The 1-minute bar that
+// starts one minute before the target closes at the target time, so its close is the price then.
+// Yahoo keeps 1-minute bars for about a week; 5-minute bars are the fallback.
+export async function yahooAt(symbol, iso) {
+  const t = toUnix(iso);
+  for (const [interval, secs] of [["1m", 60], ["5m", 300]]) {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?period1=${t - 3600}&period2=${t + 3600}&interval=${interval}`;
+    try {
+      const r = (await getJson(url))?.chart?.result?.[0];
+      const closes = r?.indicators?.quote?.[0]?.close ?? [];
+      const bars = (r?.timestamp ?? []).map((ts, i) => ({ end: ts + secs, p: closes[i] })).filter((b) => Number.isFinite(b.p) && b.end <= t);
+      const bar = bars.at(-1);
+      if (bar && t - bar.end <= 10 * 60) return { price: bar.p, priceTime: bar.end * 1000, source: `Yahoo Finance (${interval} bar)` };
+    } catch (e) {
+      console.warn(`[Yahoo ${interval} ${symbol}] ${e.message}`);
+    }
+  }
+  throw new Error(`Yahoo: no intraday price for ${symbol} near ${iso}`);
+}
+
+// SOL/AUD at a specific moment (settlement), from CoinGecko's range data (fallback).
 export async function coingeckoAt(id, iso) {
   const t = toUnix(iso);
   const j = await getJson(`https://api.coingecko.com/api/v3/coins/${id}/market_chart/range?vs_currency=aud&from=${t - 3 * 3600}&to=${t + 3 * 3600}`);
@@ -86,7 +106,7 @@ async function firstOk(label, ...attempts) {
 }
 
 // SLS settlement: the last ASX close on or before the checkpoint date (Sydney time).
-function closeOnOrBefore(history, dateIso) {
+export function closeOnOrBefore(history, dateIso) {
   const sydneyDate = (ms) => new Date(ms).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
   return history.filter((h) => sydneyDate(h.t) <= dateIso).at(-1) ?? null;
 }
@@ -110,7 +130,7 @@ export async function build(bet, previous = null) {
   for (const cp of bet.checkpoints) {
     if (data.settlements[cp.id] || Date.now() < Date.parse(cp.settlementUtc) + 2 * 3600 * 1000) continue;
     const slsClose = data.sls.history ? closeOnOrBefore(data.sls.history, cp.endDate) : null;
-    const solAt = await firstOk(`SOL settle ${cp.id}`, () => coingeckoAt(sol.coingecko, cp.settlementUtc));
+    const solAt = await firstOk(`SOL settle ${cp.id}`, () => yahooAt(sol.yahoo, cp.settlementUtc), () => coingeckoAt(sol.coingecko, cp.settlementUtc));
     if (slsClose && solAt.price) {
       data.settlements[cp.id] = {
         sls: { price: slsClose.p, priceTime: slsClose.t, source: data.sls.source },
