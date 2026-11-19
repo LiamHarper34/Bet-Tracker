@@ -391,13 +391,19 @@ th:first-child, td:first-child { text-align: left; }
     const el = $("celebrate"), A = data.bet.assets, cps = data.bet.checkpoints;
     const params = new URLSearchParams(location.search);
     const previewKey = ["sls", "sol"].includes(params.get("preview")) ? params.get("preview") : null;
-    let cp = null, winKey = null;
+    let cp = null, winKey = null, provisional = false;
     if (previewKey) {
       cp = cps.find((c) => c.id === params.get("cp")) || cps.find((c) => !settledFor(c)) || cps[0];
       winKey = previewKey;
     } else {
       cp = [...cps].reverse().find((c) => settledFor(c)) || null;
       if (cp) winKey = winner(returns(settledFor(cp)));
+      // Between the 4pm deadline and the official prices locking in, celebrate on the latest prices
+      const due = cps.find((c) => !settledFor(c) && Date.now() >= Date.parse(c.settlementUtc));
+      if (due) {
+        const r = returns({ sls: current("sls"), sol: current("sol") });
+        if (r.sls != null && r.sol != null) { cp = due; winKey = winner(r); provisional = true; }
+      }
     }
     if (!cp || !cp.celebrate) { el.hidden = true; el.innerHTML = ""; return; }
     const c = cp.celebrate[winKey], loseKey = winKey === "sls" ? "sol" : "sls";
@@ -408,6 +414,7 @@ th:first-child, td:first-child { text-align: left; }
     const confetti = Array.from({ length: 28 }, (_, i) =>
       `<i style="left:${(i * 37) % 100}%;background:${colors[i % colors.length]};animation-duration:${2.2 + (i % 5) * 0.35}s;animation-delay:${-(i % 7) * 0.4}s"></i>`).join("");
     el.innerHTML = (previewKey ? `<span class="preview">Preview: not the real result</span>` : "") +
+      (provisional ? `<span class="preview">Provisional: official prices lock in after 6pm</span>` : "") +
       `<h2>${esc(c.headline)}</h2><p class="sub">${esc(c.sub)}</p>
       <div class="stage"><div class="confetti" aria-hidden="true">${confetti}</div>
       <svg viewBox="0 -30 400 250" role="img" aria-label="${esc(A[winKey].backer)} celebrating and ${esc(A[loseKey].backer)} looking sad">${chars}</svg></div>`;
