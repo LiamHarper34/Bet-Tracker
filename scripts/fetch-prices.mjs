@@ -164,6 +164,10 @@ async function main() {
   await mkdir(dirname(out), { recursive: true });
   await writeFile(out, JSON.stringify(data));
   console.log(`SLS ${data.sls.price ?? "n/a"} (${data.sls.source ?? data.sls.error}) | SOL ${data.sol.price ?? "n/a"} (${data.sol.source ?? data.sol.error})`);
+  for (const [id, st] of Object.entries(data.settlements ?? {})) {
+    const iso = (ms) => new Date(ms).toISOString();
+    console.log(`Settled ${id}: SLS ${st.sls.price} at ${iso(st.sls.priceTime)} (${st.sls.source}) | SOL ${st.sol.price} at ${iso(st.sol.priceTime)} (${st.sol.source})`);
+  }
   if (!data.sls.price && !data.sol.price) process.exit(1);
 }
 

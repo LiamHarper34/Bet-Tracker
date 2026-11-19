@@ -43,7 +43,7 @@ jobs:
       - name: Settlement dry run (manual runs only)
         if: github.event_name == 'workflow_dispatch'
         continue-on-error: true
-        run: node scripts/settle-check.mjs 2026-11-17T05:00:00Z 2026-11-17
+        run: node scripts/settle-check.mjs 2026-11-19T05:00:00Z 2026-11-19
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
